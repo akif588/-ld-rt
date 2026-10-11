@@ -4,16 +4,16 @@
     <title>hatira</title>
   </head>
   <body>
-   <ing src="p1.png"></ing>
-    <ing src="p2.png"></ing>
+   <img src="p1.png" height="400px" width="450px">
     <script>
       
       let sifre = "12345"
       function sifrele() {
         let girdi = prompt("şifeyi gir")
         if (sifre === girdi) {
-          alert("yanlış")
+          alert("doğru")
         }else{
+          alert("yanlış")
           sifrele()
         }
       }
