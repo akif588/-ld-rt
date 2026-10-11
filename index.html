@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <title>hatira</title>
+  </head>
+  <body>
+   <ing src="p1.png"></ing>
+    <ing src="p2.png"></ing>
+    <script>
+      
+      let sifre = "12345"
+      function sifrele() {
+        let girdi = prompt("şifeyi gir")
+        if (sifre === girdi) {
+          alert("yanlış")
+        }else{
+          sifrele()
+        }
+      }
+      sifrele()
+    </script>
+  </body>
+</html>
