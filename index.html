@@ -3,287 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kişisel Bulut Deposu</title>
+    <title>GitHub -> Termux Python Köprüsü</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #0f172a;
+            background-color: #0f172a;
             color: #f8fafc;
+            font-family: monospace;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            min-height: 100vh;
+            justify-content: center;
+            height: 100vh;
             margin: 0;
         }
-        .container {
+        .card {
             background: #1e293b;
             padding: 25px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            max-width: 450px;
-            width: 90%;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            width: 350px;
             text-align: center;
+            border: 1px solid #334155;
         }
-        input, button {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 8px;
+        button {
+            background: #38bdf8;
+            color: #0f172a;
             border: none;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        input { background: #334155; color: #fff; }
-        button { background: #3b82f6; color: #fff; font-weight: bold; cursor: pointer; }
-        button:hover { background: #2563eb; }
-        .gallery {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 20px;
-            max-height: 250px;
-            overflow-y: auto;
-            justify-content: center;
-        }
-        .photo-card {
-            background: #334155;
-            padding: 8px;
-            border-radius: 8px;
-            width: 45%;
-        }
-        .photo-card img {
+            padding: 10px 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px 0;
             width: 100%;
-            border-radius: 4px;
         }
-        .download-btn {
-            background: #10b981;
-            font-size: 12px;
-            padding: 6px;
-            margin-top: 5px;
-            text-decoration: none;
-            display: block;
+        button:hover { background: #0ea5e9; }
+        input {
+            width: calc(100% - 16px);
+            padding: 8px;
+            background: #0f172a;
+            border: 1px solid #475569;
             color: white;
             border-radius: 4px;
+            margin-bottom: 10px;
         }
-        #statusMsg {
-            font-size: 14px;
-            margin: 10px 0;
+        .box {
+            background: #0f172a;
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 6px;
+            font-size: 13px;
             color: #38bdf8;
+            min-height: 30px;
+            word-break: break-all;
         }
     </style>
 </head>
 <body>
 
-    <div class="container" id="app">
-        <!-- Giriş Ekranı -->
-        <div id="loginScreen">
-            <h2>Kişisel Bulut</h2>
-            <p>Dolabına erişmek için adını yaz:</p>
-            <input type="text" id="usernameInput" placeholder="Adın veya Rumuzun">
-            <button id="loginBtn">Dolabımı Aç</button>
-        </div>
+    <div class="card">
+        <h2>📱 Python & Web Köprüsü</h2>
+        <p style="font-size: 11px; color: #94a3b8;">Hedef IP: <span id="ip-text"></span></p>
 
-        <!-- Dolap Ekranı -->
-        <div id="dashboardScreen" style="display: none;">
-            <h2 id="welcomeTitle"></h2>
-            <p id="roleInfo" style="color: #38bdf8; font-size: 14px;"></p>
-            
-            <input type="file" id="fileInput" accept="image/*">
-            <button id="uploadBtn">Fotoğraf Yükle</button>
-            <p id="statusMsg"></p>
-            
-            <h3>Fotoğraflar</h3>
-            <div class="gallery" id="photoGallery">
-                <p>Yükleniyor...</p>
-            </div>
-            
-            <button id="logoutBtn" style="background: #ef4444; margin-top: 20px;">Çıkış Yap</button>
-        </div>
+        <!-- Python'dan Veri Çekme -->
+        <button onclick="pythonVeriCek()">Telefondan Veri Çek (GET)</button>
+        
+        <!-- Python'a Veri Gönderme -->
+        <input type="text" id="mesajInput" placeholder="Telefona mesaj yaz kanka...">
+        <button onclick="pythonVeriGonder()">Telefona Veri Gönder (POST)</button>
+
+        <div class="box" id="sonucBox">Sonuçlar burada görünecek kanka...</div>
     </div>
 
     <script>
-        const GITHUB_TOKEN = 'Ghp_Sj0M5SzlIhWgX2Jl4KlAitrtlCjejx35TAUN'; 
-        const REPO_INFO = 'akif588/Game';
+        // Senin verdiğin IP adresi ve Flask portu
+        const PYTHON_URL = "http://192.168.0.112:5000";
+        document.getElementById('ip-text').innerText = PYTHON_URL;
 
-        let currentUser = '';
-
-        // Olay dinleyicilerini ekleyelim (Butonların tıklanmasını garantiye alır)
-        document.getElementById('loginBtn').addEventListener('click', login);
-        document.getElementById('uploadBtn').addEventListener('click', uploadPhoto);
-        document.getElementById('logoutBtn').addEventListener('click', logout);
-
-        async function login() {
-            const inputVal = document.getElementById('usernameInput').value.trim();
-            if (!inputVal) {
-                alert("Lütfen bir isim yaz kanka!");
-                return;
-            }
-            currentUser = inputVal;
-            
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('dashboardScreen').style.display = 'block';
-
-            if (currentUser === 'admin12') {
-                document.getElementById('welcomeTitle').innerText = "Admin Paneli";
-                document.getElementById('roleInfo').innerText = "Tüm kullanıcıların fotoğraflarını görüyorsun.";
-                document.getElementById('fileInput').style.display = 'none';
-                document.getElementById('uploadBtn').style.display = 'none';
-            } else {
-                document.getElementById('welcomeTitle').innerText = `Hoş geldin, ${currentUser}`;
-                document.getElementById('roleInfo').innerText = "Bu senin kişisel bulut dolabın.";
-                document.getElementById('fileInput').style.display = 'block';
-                document.getElementById('uploadBtn').style.display = 'block';
-            }
-
-            await loadPhotos();
-        }
-
-        function logout() {
-            currentUser = '';
-            document.getElementById('usernameInput').value = '';
-            document.getElementById('dashboardScreen').style.display = 'none';
-            document.getElementById('loginScreen').style.display = 'block';
-        }
-
-        async function uploadPhoto() {
-            const fileInput = document.getElementById('fileInput');
-            const statusMsg = document.getElementById('statusMsg');
-            
-            if (fileInput.files.length === 0) {
-                alert("Önce bir fotoğraf seç kanka!");
-                return;
-            }
-
-            const file = fileInput.files[0];
-            statusMsg.innerText = "Fotoğraf hazırlanıyor...";
-
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            
-            reader.onload = function(event) {
-                const img = new Image();
-                img.src = event.target.result;
-                
-                img.onload = async function() {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const base64Data = canvas.toDataURL('image/jpeg', 0.7);
-                    const base64Content = base64Data.split(',')[1];
-                    const timestamp = Date.now();
-                    const path = `bulut_depo/${currentUser}/foto_${timestamp}.jpg`;
-                    const url = `https://api.github.com/repos/${REPO_INFO}/contents/${path}`;
-
-                    const bodyData = {
-                        message: `${currentUser} fotoğraf yükledi`,
-                        content: base64Content,
-                        branch: "main"
-                    };
-
-                    statusMsg.innerText = "GitHub'a yükleniyor...";
-
-                    try {
-                        let response = await fetch(url, {
-                            method: 'PUT',
-                            headers: {
-                                'Authorization': `token ${GITHUB_TOKEN}`,
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(bodyData)
-                        });
-
-                        let resJson = await response.json();
-
-                        if (response.ok) {
-                            statusMsg.innerText = "Yükleme başarılı! 🎉";
-                            fileInput.value = '';
-                            await loadPhotos();
-                        } else {
-                            statusMsg.innerText = "Hata: " + (resJson.message || "Yüklenemedi");
-                        }
-                    } catch (err) {
-                        statusMsg.innerText = "Bağlantı hatası oluştu.";
-                    }
-                };
-            };
-        }
-
-        async function loadPhotos() {
-            const gallery = document.getElementById('photoGallery');
-            gallery.innerHTML = '<p>Yükleniyor...</p>';
-
+        async function pythonVeriCek() {
+            const box = document.getElementById('sonucBox');
+            box.innerText = "Telefondan veri isteniyor...";
             try {
-                if (currentUser === 'admin12') {
-                    let allFiles = [];
-                    let res = await fetch(`https://api.github.com/repos/${REPO_INFO}/contents/bulut_depo`, {
-                        headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-                    });
-                    
-                    if (res.ok) {
-                        let users = await res.json();
-                        for (let userFolder of users) {
-                            if (userFolder.type === 'dir') {
-                                let userRes = await fetch(userFolder.url, {
-                                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-                                });
-                                if (userRes.ok) {
-                                    let userFiles = await userRes.json();
-                                    allFiles = allFiles.concat(userFiles);
-                                }
-                            }
-                        }
-                    }
-                    renderGallery(allFiles);
-                } else {
-                    let url = `https://api.github.com/repos/${REPO_INFO}/contents/bulut_depo/${currentUser}`;
-                    let res = await fetch(url, {
-                        headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-                    });
-
-                    if (res.ok) {
-                        let files = await res.json();
-                        renderGallery(files);
-                    } else {
-                        gallery.innerHTML = '<p>Henüz fotoğrafın yok.</p>';
-                    }
-                }
-            } catch (err) {
-                gallery.innerHTML = '<p>Fotoğraflar yüklenemedi.</p>';
+                const response = await fetch(`${PYTHON_URL}/api/veri-cek`);
+                const data = await response.json();
+                box.innerText = `[GET Başarılı] ${data.mesaj}`;
+            } catch (error) {
+                box.innerText = "Hata: Telefona ulaşılamadı kanka! Wi-Fi'da mısın veya Flask açık mı?";
+                console.error(error);
             }
         }
 
-        function renderGallery(files) {
-            const gallery = document.getElementById('photoGallery');
-            gallery.innerHTML = '';
-
-            if (!files || files.length === 0) {
-                gallery.innerHTML = '<p>Hiç fotoğraf bulunamadı.</p>';
+        async function pythonVeriGonder() {
+            const box = document.getElementById('sonucBox');
+            const mesaj = document.getElementById('mesajInput').value;
+            if(!mesaj) {
+                box.innerText = "Önce kutuya bişeyler yaz kanka!";
                 return;
             }
 
-            files.forEach(file => {
-                if (file.type === 'file' && (file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.jpeg'))) {
-                    const card = document.createElement('div');
-                    card.className = 'photo-card';
-                    card.innerHTML = `
-                        <img src="${file.download_url}" alt="Fotoğraf">
-                        <a class="download-btn" href="${file.download_url}" target="_blank" download>İndir</a>
-                    `;
-                    gallery.appendChild(card);
-                }
-            });
+            box.innerText = "Telefona gönderiliyor...";
+            try {
+                const response = await fetch(`${PYTHON_URL}/api/veri-gonder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mesaj: mesaj })
+                });
+                const data = await response.json();
+                box.innerText = `[POST Başarılı] ${data.cevap}`;
+            } catch (error) {
+                box.innerText = "Hata: Veri gönderilemedi kanka!";
+                console.error(error);
+            }
         }
     </script>
 </body>
